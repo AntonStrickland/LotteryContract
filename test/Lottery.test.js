@@ -107,13 +107,19 @@ describe('Lottery Contract', () => {
 
     const difference = finalBalance - initialBalance;
 
-    // assert that money was sent to the winner
+    // Assert that money was sent to the winner
     assert(difference > web3.utils.toWei('1.8', 'ether'));
 
-    // TODO: assert that the player array was reset
+    // Assert that the player array was reset
+    const players = await lottery.methods.getPlayers().call( {
+      from: accounts[0]
+    });
 
-    // TODO: assert that the lottery has a balance of zero
+    assert(players.length == 0);
 
+    // Assert that the lottery has a balance of zero
+    const lotteryBalance = await web3.eth.getBalance(lottery.options.address);
+    assert(lotteryBalance == 0);
   });
 
 });
