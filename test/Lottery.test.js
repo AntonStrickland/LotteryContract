@@ -114,12 +114,112 @@ describe('Lottery Contract', () => {
     const players = await lottery.methods.getPlayers().call( {
       from: accounts[0]
     });
-
     assert(players.length == 0);
 
     // Assert that the lottery has a balance of zero
     const lotteryBalance = await web3.eth.getBalance(lottery.options.address);
     assert(lotteryBalance == 0);
+  });
+
+  it ('requires that only manager can cancel the lottery', async() => {
+
+    try {
+      await lottery.methods.cancelLottery().send({
+        from: accounts[1]
+      });
+      assert(false);
+    } catch (err) {
+      assert(err);
+    }
+
+  });
+
+  it('can return the wagered amount to each player', async() => {
+
+    // Player 1 enters
+    await lottery.methods.enter().send( {
+      from: accounts[0],
+      value: web3.utils.toWei('1', 'ether')
+    });
+
+    // Player 2 enters
+    await lottery.methods.enter().send( {
+      from: accounts[1],
+      value: web3.utils.toWei('2', 'ether')
+    });
+
+    // Player 3 enters
+    await lottery.methods.enter().send( {
+      from: accounts[2],
+      value: web3.utils.toWei('3', 'ether')
+    });
+
+    // Assert that each wager is correctly stored in the lottery
+    let wager1 = await lottery.methods.wagerOf(accounts[0]).call( {
+      from: accounts[0]
+    });
+
+    let wager2 = await lottery.methods.wagerOf(accounts[1]).call( {
+      from: accounts[0]
+    });
+
+    let wager3 = await lottery.methods.wagerOf(accounts[2]).call( {
+      from: accounts[0]
+    });
+
+    assert.equal(web3.utils.toWei('1', 'ether'), wager1);
+    assert.equal(web3.utils.toWei('2', 'ether'), wager2);
+    assert.equal(web3.utils.toWei('3', 'ether'), wager3);
+
+    const initialBalance1 = await web3.eth.getBalance(accounts[0]);
+    const initialBalance2 = await web3.eth.getBalance(accounts[1]);
+    const initialBalance3 = await web3.eth.getBalance(accounts[2]);
+
+    // Manager cancels the lottery
+    await lottery.methods.cancelLottery().send({
+      from: accounts[0]
+    });
+
+    // Assert that all players have been refunded exactly what they wagered
+    const finalBalance1 = await web3.eth.getBalance(accounts[0]);
+    const finalBalance2 = await web3.eth.getBalance(accounts[1]);
+    const finalBalance3 = await web3.eth.getBalance(accounts[2]);
+
+    const difference1 = finalBalance1 - initialBalance1;
+    const difference2 = finalBalance2 - initialBalance2;
+    const difference3 = finalBalance3 - initialBalance3;
+
+    assert(difference1 > web3.utils.toWei('0.8', 'ether'));
+    assert(difference2 > web3.utils.toWei('1.8', 'ether'));
+    assert(difference3 > web3.utils.toWei('2.8', 'ether'));
+
+    // Assert that all wagers have been reset to zero
+    wager1 = await lottery.methods.wagerOf(accounts[0]).call( {
+      from: accounts[0]
+    });
+
+    wager2 = await lottery.methods.wagerOf(accounts[1]).call( {
+      from: accounts[0]
+    });
+
+    wager3 = await lottery.methods.wagerOf(accounts[2]).call( {
+      from: accounts[0]
+    });
+
+    assert.equal(0, wager1);
+    assert.equal(0, wager2);
+    assert.equal(0, wager3);
+
+    // Assert that the list of players is empty
+    const players = await lottery.methods.getPlayers().call( {
+      from: accounts[0]
+    });
+    assert(players.length == 0);
+
+    // Assert that the lottery has a balance of zero
+    const lotteryBalance = await web3.eth.getBalance(lottery.options.address);
+    assert(lotteryBalance == 0);
+
   });
 
 });

@@ -5,6 +5,8 @@ contract Lottery {
     address public manager;
     address[] public players;
 
+    mapping(address => uint) public wagerOf;
+
     // Assign the creator of the contract as the manager
     constructor() public {
         manager = msg.sender;
@@ -18,6 +20,9 @@ contract Lottery {
 
         // Add sender to the list of players
         players.push(msg.sender);
+
+        // Keep track of the player's wager
+        wagerOf[msg.sender] = msg.value;
     }
 
     // Send the contract's total balance to a random player
@@ -41,9 +46,16 @@ contract Lottery {
         return uint(keccak256(abi.encodePacked(block.difficulty, now, players)));
     }
 
-    //TODO: Implement this!
-    function cancelLottery() public view onlyManager {
+    // Returns all wagers to each player without picking a winner
+    function cancelLottery() public onlyManager {
 
+      for (uint i = 0; i < players.length; i++) {
+        players[i].transfer(wagerOf[players[i]]);
+        wagerOf[players[i]] = 0;
+      }
+
+      // Reset the array for the next game
+      players = new address[](0);
     }
 
     // Get the entire list of players in the lottery
